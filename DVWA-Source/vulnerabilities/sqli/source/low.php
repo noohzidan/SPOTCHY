@@ -6,9 +6,15 @@ if( isset( $_REQUEST[ 'Submit' ] ) ) {
 
 	switch ($_DVWA['SQLI_DB']) {
 		case MYSQL:
-			// Check database
-			$query  = "SELECT first_name, last_name FROM users WHERE user_id = '$id';";
-			$result = mysqli_query($GLOBALS["___mysqli_ston"],  $query ) or die( '<pre>' . ((is_object($GLOBALS["___mysqli_ston"])) ? mysqli_error($GLOBALS["___mysqli_ston"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );
+			// Prepare safe query
+			$stmt = mysqli_prepare(
+				$GLOBALS["___mysqli_ston"],
+				"SELECT first_name, last_name FROM users WHERE user_id = ?"
+			);
+			
+			mysqli_stmt_bind_param($stmt, "s", $id);
+			mysqli_stmt_execute($stmt);
+			$result = mysqli_stmt_get_result($stmt);
 
 			// Get results
 			while( $row = mysqli_fetch_assoc( $result ) ) {
@@ -22,16 +28,18 @@ if( isset( $_REQUEST[ 'Submit' ] ) ) {
 
 			mysqli_close($GLOBALS["___mysqli_ston"]);
 			break;
+
 		case SQLITE:
 			global $sqlite_db_connection;
 
-			#$sqlite_db_connection = new SQLite3($_DVWA['SQLITE_DB']);
-			#$sqlite_db_connection->enableExceptions(true);
+			// Prepare safe SQLite statement
+			$stmt = $sqlite_db_connection->prepare(
+				"SELECT first_name, last_name FROM users WHERE user_id = :id"
+			);
+			$stmt->bindValue(':id', $id, SQLITE3_TEXT);
 
-			$query  = "SELECT first_name, last_name FROM users WHERE user_id = '$id';";
-			#print $query;
 			try {
-				$results = $sqlite_db_connection->query($query);
+				$results = $stmt->execute();
 			} catch (Exception $e) {
 				echo 'Caught exception: ' . $e->getMessage();
 				exit();
