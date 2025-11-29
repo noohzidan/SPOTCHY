@@ -1,7 +1,7 @@
 <?php
 /*
 
-Only the admin user is allowed to access this page.
+Only users with admin role are allowed to access this page.
 
 Have a look at these two files for possible vulnerabilities: 
 
@@ -10,9 +10,10 @@ Have a look at these two files for possible vulnerabilities:
 
 */
 
-if (dvwaCurrentUser() != "admin") {
-	print "Unauthorised";
-	http_response_code(403);
-	exit;
+// Fixed: Check user role instead of username
+if (!dvwaIsUserAdmin()) {
+    print "Unauthorised";
+    http_response_code(403);
+    exit;
 }
 ?>
