@@ -5,20 +5,37 @@ if( isset( $_POST[ 'btnSign' ] ) ) {
 	$message = trim( $_POST[ 'mtxMessage' ] );
 	$name    = trim( $_POST[ 'txtName' ] );
 
-	// Sanitize message input
-	$message = strip_tags( addslashes( $message ) );
-	$message = ((isset($GLOBALS["___mysqli_ston"]) && is_object($GLOBALS["___mysqli_ston"])) ? mysqli_real_escape_string($GLOBALS["___mysqli_ston"],  $message ) : ((trigger_error("[MySQLConverterToo] Fix the mysql_escape_string() call! This code does not work.", E_USER_ERROR)) ? "" : ""));
-	$message = htmlspecialchars( $message );
+	// FIXED: Input validation
+	if (empty($message) || empty($name)) {
+		die("Name and message are required.");
+	}
 
-	// Sanitize name input
-	$name = preg_replace( '/<(.*)s(.*)c(.*)r(.*)i(.*)p(.*)t/i', '', $name );
-	$name = ((isset($GLOBALS["___mysqli_ston"]) && is_object($GLOBALS["___mysqli_ston"])) ? mysqli_real_escape_string($GLOBALS["___mysqli_ston"],  $name ) : ((trigger_error("[MySQLConverterToo] Fix the mysql_escape_string() call! This code does not work.", E_USER_ERROR)) ? "" : ""));
+	// FIXED: Length validation
+	if (strlen($name) > 50) {
+		die("Name too long. Maximum 50 characters.");
+	}
+	if (strlen($message) > 500) {
+		die("Message too long. Maximum 500 characters.");
+	}
 
-	// Update database
-	$query  = "INSERT INTO guestbook ( comment, name ) VALUES ( '$message', '$name' );";
-	$result = mysqli_query($GLOBALS["___mysqli_ston"],  $query ) or die( '<pre>' . ((is_object($GLOBALS["___mysqli_ston"])) ? mysqli_error($GLOBALS["___mysqli_ston"]) : (($___mysqli_res = mysqli_connect_error()) ? $___mysqli_res : false)) . '</pre>' );
+	// FIXED: Remove ALL HTML tags for storage (clean input)
+	$name = strip_tags($name);
+	$message = strip_tags($message);
 
-	//mysql_close();
+	// FIXED: Use prepared statements for SQL safety
+	$query = "INSERT INTO guestbook ( comment, name ) VALUES ( ?, ? )";
+	$stmt = mysqli_prepare($GLOBALS["___mysqli_ston"], $query);
+	
+	if ($stmt) {
+		mysqli_stmt_bind_param($stmt, "ss", $message, $name);
+		mysqli_stmt_execute($stmt);
+		mysqli_stmt_close($stmt);
+		
+		// Success message
+		$html .= "<pre>Thank you for your message!</pre>";
+	} else {
+		die("Database error.");
+	}
 }
 
 ?>
