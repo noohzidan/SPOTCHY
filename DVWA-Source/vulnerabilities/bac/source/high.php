@@ -1,3 +1,4 @@
+
 <?php
 if (!defined('DVWA_WEB_PAGE_TO_ROOT')) {
     define('DVWA_WEB_PAGE_TO_ROOT', '../../../');
@@ -16,7 +17,7 @@ $current_user_id = intval($user_info['user_id']);
 $role = $user_info['role'];
 mysqli_stmt_close($stmt);
 
-// Better access control (but still vulnerable to session fixation)
+// FIXED: Secure session management
 $html = "";
 if (isset($_GET['action']) && isset($_GET['user_id'])) {
     if (!preg_match('/^\d+$/', $_GET['user_id'])) {
@@ -36,11 +37,12 @@ if (isset($_GET['action']) && isset($_GET['user_id'])) {
         if (!$user_exists) {
             $html .= "<p>No user found with ID: {$id}</p>";
         } else {
-            // "Secure" session-based check (but vulnerable to session fixation)
-            if (isset($_SESSION['user_id'])) {
+            // FIXED: Enhanced session validation with current user check
+            if (isset($_SESSION['user_id']) && isset($_SESSION['authenticated']) && $_SESSION['authenticated'] === true) {
                 $session_id = intval($_SESSION['user_id']);
-
-                if ($id == $session_id) {
+                
+                // FIXED: Additional validation - session must match current user
+                if ($id == $session_id && $session_id == $current_user_id) {
                     // Access granted - using prepared statement
                     $query = "SELECT first_name, last_name, user_id, avatar FROM users WHERE user_id = ?";
                     $stmt = mysqli_prepare($GLOBALS["___mysqli_ston"], $query);
@@ -57,15 +59,14 @@ if (isset($_GET['action']) && isset($_GET['user_id'])) {
                                 <p>Name: " . htmlspecialchars($row['first_name'], ENT_QUOTES, 'UTF-8') . " " .
                             htmlspecialchars($row['last_name'], ENT_QUOTES, 'UTF-8') . "</p>
                                 <p>Avatar: " . htmlspecialchars($row['avatar'], ENT_QUOTES, 'UTF-8') . "</p>
-                                <!-- Hint: Session management is better, but still vulnerable... -->
                             </div>";
                     }
                     mysqli_stmt_close($stmt);
                 } else {
-                    $html .= "<p>Access denied. You can only view your own profile.</p>";
+                    $html .= "<p>Access denied. Session validation failed.</p>";
                 }
             } else {
-                $html .= "<p>Access denied. No user_id in session.</p>";
+                $html .= "<p>Access denied. Invalid or unauthenticated session.</p>";
             }
         }
 
@@ -103,8 +104,9 @@ if (isset($_GET['action']) && isset($_GET['user_id'])) {
     }
 }
 
-// Set initial session if not exists
-if (!isset($_SESSION['user_id'])) {
-    $_SESSION['user_id'] = $current_user_id;
-}
+// FIXED: Remove insecure session initialization
+// Session should only be set during proper authentication process
+// if (!isset($_SESSION['user_id'])) {
+//     $_SESSION['user_id'] = $current_user_id;
+// }
 ?>
