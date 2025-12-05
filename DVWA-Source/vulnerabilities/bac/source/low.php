@@ -10,7 +10,7 @@ $row = ($result && mysqli_num_rows($result) > 0) ? mysqli_fetch_assoc($result) :
 $current_user_id = intval($row['user_id']);
 $role = $row['role'];
 
-// Slightly better access control (but still vulnerable)
+// FIXED: Proper access control
 $html = "";
 if (isset($_GET['action']) && isset($_GET['user_id'])) {
     if (!preg_match('/^\d+$/', $_GET['user_id'])) {
@@ -26,12 +26,12 @@ if (isset($_GET['action']) && isset($_GET['user_id'])) {
         if (!$user_exists) {
             $html .= "<p>No user found with ID: {$id}</p>";
         } else {
-            // "Secure" check that's still vulnerable
-            if (isset($_COOKIE['user_id'])) {
-                $cookie_id = intval($_COOKIE['user_id']);
+            // FIXED: Use server-side session instead of cookie for authorization
+            if (isset($_SESSION['user_id'])) {
+                $session_user_id = intval($_SESSION['user_id']);
                 
-                if ($id == $cookie_id) {
-                    // Access granted
+                if ($id == $session_user_id) {
+                    // Access granted - SERVER-SIDE validation
                     $query = "SELECT first_name, last_name, user_id, avatar FROM users WHERE user_id = $id;";
                     $result = mysqli_query($GLOBALS["___mysqli_ston"], $query);
                     
@@ -43,14 +43,13 @@ if (isset($_GET['action']) && isset($_GET['user_id'])) {
                                 <p>User ID: {$row['user_id']}</p>
                                 <p>Name: {$row['first_name']} {$row['last_name']}</p>
                                 <p>Avatar: {$row['avatar']}</p>
-                                <!-- Hint: Cookies can be modified by users... -->
                             </div>";
                     }
                 } else {
                     $html .= "<p>Access denied. You can only view your own profile.</p>";
                 }
             } else {
-                $html .= "<p>Access denied. No user_id cookie found.</p>";
+                $html .= "<p>Access denied. Please log in.</p>";
             }
         }
         
@@ -85,12 +84,12 @@ if (isset($_GET['action']) && isset($_GET['user_id'])) {
     }
 }
 
-// Show current user's role for context
-$role = isset($_COOKIE['user_role']) ? $_COOKIE['user_role'] : 'regular_user';
-$html .= "<div class='info-banner'>Current Role: {$role}</div>";
+// FIXED: Get role from server-side session instead of cookie
+$actual_role = $_SESSION['user_role'] ?? $role; // Use database role or session role
+$html .= "<div class='info-banner'>Current Role: {$actual_role}</div>";
 
-// Set initial role cookie if not exists
-if (!isset($_COOKIE['user_role'])) {
-    setcookie('user_role', 'regular_user', time() + 3600, '/');
-}
+// FIXED: Remove insecure cookie setting - roles should be server-side only
+// if (!isset($_COOKIE['user_role'])) {
+//     setcookie('user_role', 'regular_user', time() + 3600, '/');
+// }
 ?>
