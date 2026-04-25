@@ -91,6 +91,14 @@ The project follows a structured **Secure SDLC** approach:
 
 ---
 
+## 📸 Sample Findings
+
+### Static Code Review
+![Static Analysis](Findings/screens/static.png)
+
+### Code Review
+![Code Review](Findings/screens/codereview.png)
+
 ## 📁 Repository Structure
 
 ```
